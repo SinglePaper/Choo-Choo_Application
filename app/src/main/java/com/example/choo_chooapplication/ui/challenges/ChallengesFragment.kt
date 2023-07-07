@@ -1,4 +1,4 @@
-package com.example.choo_chooapplication.ui.gallery
+package com.example.choo_chooapplication.ui.challenges
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -7,11 +7,11 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
-import com.example.choo_chooapplication.databinding.FragmentGalleryBinding
+import com.example.choo_chooapplication.databinding.FragmentChallengesBinding
 
-class GalleryFragment : Fragment() {
+class ChallengesFragment : Fragment() {
 
-    private var _binding: FragmentGalleryBinding? = null
+    private var _binding: FragmentChallengesBinding? = null
 
     // This property is only valid between onCreateView and
     // onDestroyView.
@@ -22,14 +22,14 @@ class GalleryFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val galleryViewModel =
-            ViewModelProvider(this)[GalleryViewModel::class.java]
+        val challengesViewModel =
+            ViewModelProvider(this)[ChallengesViewModel::class.java]
 
-        _binding = FragmentGalleryBinding.inflate(inflater, container, false)
+        _binding = FragmentChallengesBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
         val textView: TextView = binding.textGallery
-        galleryViewModel.text.observe(viewLifecycleOwner) {
+        challengesViewModel.text.observe(viewLifecycleOwner) {
             textView.text = it
         }
         return root

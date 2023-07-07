@@ -1,10 +1,10 @@
-package com.example.choo_chooapplication.ui.gallery
+package com.example.choo_chooapplication.ui.challenges
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 
-class GalleryViewModel : ViewModel() {
+class ChallengesViewModel : ViewModel() {
 
     private val _text = MutableLiveData<String>().apply {
         value = "This is gallery Fragment"
