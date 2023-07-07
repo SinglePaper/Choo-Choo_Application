@@ -1,14 +1,17 @@
 package com.example.choo_chooapplication
 
 import android.content.Context
-import android.content.SharedPreferences
+import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.Menu
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.navigation.findNavController
@@ -33,110 +36,133 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
+    private val scope = CoroutineScope(Dispatchers.Main)
+    private lateinit var navView: NavigationView
+    private var isTeamLeader = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val scope = CoroutineScope(Dispatchers.Main)
         // Saving data on user's phone
         val sharedPref = getSharedPreferences("personInfo", Context.MODE_PRIVATE)
-//        val editor = sharedPref.edit()
-//        editor.apply {
+
+
+        val editor = sharedPref.edit()
+        editor.apply {
 //            putString("playerCode", null)
-//            apply()
-//        }
-        var playerCode = sharedPref.getString("playerCode",null) as String
-        var playerName = sharedPref.getString("playerName",null) as String
-        var teamCode = sharedPref.getString("teamCode",null) as String
-        if (playerCode!=null) {
-            showApp(scope,playerCode, playerName, teamCode)
+            apply()
+        }
+        val playerCode = sharedPref.getString("playerCode",null)
+        val playerName = sharedPref.getString("playerName","Loading...")
+        val teamCode = sharedPref.getString("teamCode","")
+        if (playerCode!=null && playerName!=null && teamCode!=null) {
+            showApp(playerCode, playerName, teamCode)
             Log.d("Testing", "Player code '$playerCode' found. Entering app.")
         }
         else {
-            showLogin(scope)
+            showLogin()
             Log.d("Testing", "No Player code found. Showing login screen.")
         }
-
     }
 
-    private fun showLogin(scope: CoroutineScope) {
+    private fun showLogin() {
         setContentView(R.layout.fragment_login)
         val etPlayerCode = findViewById<EditText>(R.id.etPlayerCode)
         val btnLogin = findViewById<Button>(R.id.btnLogin)
 
         btnLogin.setOnClickListener {
-            var playerCode = etPlayerCode.text.toString()
-            updatePlayerInfo(scope, playerCode)
+            val playerCode = etPlayerCode.text.toString()
+            updatePlayerInfo(playerCode)
         }
     }
 
-    private fun showApp(scope: CoroutineScope, playerCode: String, playerName: String, teamCode: String) {
-        scope.launch {
-            // update player info and get/update team info. maybe make a nice and separate update function for this that runs every so often on a coroutine
-        }
+    private fun showApp(playerCode: Any, playerName: Any, teamCode: Any) {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setSupportActionBar(binding.appBarMain.toolbar)
 
         val drawerLayout: DrawerLayout = binding.drawerLayout
-        val navView: NavigationView = binding.navView
+        navView= binding.navView
         val navController = findNavController(R.id.nav_host_fragment_content_main)
         // Passing each menu ID as a set of Ids because each
         // menu should be considered as top level destinations.
         appBarConfiguration = AppBarConfiguration(
             setOf(
-                R.id.nav_overview, R.id.nav_gallery, R.id.nav_slideshow
+                R.id.nav_overview, R.id.nav_gallery, R.id.nav_location_sharing
             ), drawerLayout
         )
         setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
-        val navHeaderView = navView.getHeaderView(0)
 
+        val mainHandler = Handler(Looper.getMainLooper())
+
+        mainHandler.post(object : Runnable {
+            override fun run() {
+                updateLoop(playerCode.toString())
+                mainHandler.postDelayed(this, 15000)
+            }
+        })
+        val navHeaderView = navView.getHeaderView(0)
         // Personalize navbar header with team and player name
         val tvPlayerNameNav = navHeaderView.findViewById<TextView>(R.id.tvPlayerName)
-        tvPlayerNameNav.text = playerName
+        tvPlayerNameNav.text = playerName.toString()
         val tvTeamNameNav = navHeaderView.findViewById<TextView>(R.id.tvTeamName)
         tvTeamNameNav.text = "Team $teamCode"
     }
 
-    private fun updatePlayerInfo(scope: CoroutineScope, playerCode: String) {
+    private fun updatePlayerInfo(playerCode: String) {
         Log.d("Testing", "Function getPlayerInfo called.")
-        var scriptUrl = "https://script.google.com/macros/s/AKfycbzDS69K05EXE5mKKltCN8r5ra2iQmQ_vNnjssSA1F6CJioDELu3J3NMSBRDUjwMNsJi/exec"
+        val scriptUrl = "https://script.google.com/macros/s/AKfycbw83MGOHf6LWvfCwHkarNBwlcef8a_PO5ZDKSG9WEehQqPHyRHitMeP1BaHLRypO0C1/exec"
         scope.launch {
-            Log.d("Testing", "Scope launched.")
-            val client = HttpClient(CIO)
-            Log.d("Testing", "HttpClient created.")
-            val response: HttpResponse = client.get(scriptUrl) {
-                parameter("action", "getPlayerInfo")
-                parameter("playerCode", playerCode)
-            }
-            Log.d("Testing", "HttpRequest sent.")
-            var responseBody = response.body() as String;
-            Log.d("DATABASE", responseBody)
-
-            Log.d("Testing", "Response logged.")
-            var toastMsg = "";
-            when(responseBody) {
-                "alreadyLoggedIn" -> {toastMsg = "This player has already logged in."}
-                "playerNotFound" -> {toastMsg = "This player does not exist."}
-                else -> {
-                    val playerInfo = responseBody.split(",")
-                    val playerName = playerInfo[0]
-                    val teamCode = playerInfo[1]
-
-                    val sharedPref = getSharedPreferences("personInfo", Context.MODE_PRIVATE)
-                    val editor = sharedPref.edit()
-                    editor.apply{
-                        putString("playerCode", playerCode)
-                        putString("playerName", playerName)
-                        putString("teamCode", teamCode)
-                        apply()
-                    }
-                    showApp(scope, playerCode, playerName, teamCode)
+            try {
+                Log.d("Testing", "Scope launched.")
+                val client = HttpClient(CIO)
+                Log.d("Testing", "HttpClient created.")
+                val response: HttpResponse = client.get(scriptUrl) {
+                    parameter("action", "getPlayerInfo")
+                    parameter("playerCode", playerCode)
                 }
-            }
-            if(toastMsg!=""){Toast.makeText(this@MainActivity, toastMsg, Toast.LENGTH_SHORT).show()}
-        }
+                Log.d("Testing", "HttpRequest sent.")
+                val responseBody = response.body() as String
+                Log.d("DATABASE", responseBody)
 
+                Log.d("Testing", "Response logged.")
+                var toastMsg = "";
+                when (responseBody) {
+                    "playerNotFound" -> {
+                        toastMsg = "This player does not exist."
+                    }
+
+                    else -> {
+                        val playerInfo = responseBody.split(",")
+                        val alreadyLoggedIn = playerInfo[0]
+                        if (alreadyLoggedIn == "true") {
+                            toastMsg = "This player code has already been used."
+                        } else {
+                            val playerName = playerInfo[1]
+                            val teamCode = playerInfo[2]
+
+                            val sharedPref =
+                                getSharedPreferences("personInfo", Context.MODE_PRIVATE)
+                            val editor = sharedPref.edit()
+                            editor.apply {
+                                putString("playerCode", playerCode)
+                                putString("playerName", playerName)
+                                putString("teamCode", teamCode)
+                                apply()
+                            }
+                            showApp(playerCode, playerName, teamCode)
+                        }
+                    }
+                }
+                if (toastMsg != "") {
+                    Toast.makeText(this@MainActivity, toastMsg, Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Throwable) {
+                Log.d("Testing", "HttpRequest failed with error code: ${e.javaClass.name}")
+                Toast.makeText(this@MainActivity, "No internet connection", Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -150,36 +176,124 @@ class MainActivity : AppCompatActivity() {
         return navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
     }
 
-    private fun startUpdateLoop(sharedPref: SharedPreferences, scope: CoroutineScope, playerCode: String, teamCode: String)
-    {
-        Log.d("updateLoop", "startUpdateLoop called.")
+    private fun updateLoop(playerCode: String) {
+        Log.d("updateLoop", "updateLoop called.")
+        val navHeaderView = navView.getHeaderView(0)
+        val tvPlayerNameNav = navHeaderView.findViewById<TextView>(R.id.tvPlayerName)
+        val tvTeamNameNav = navHeaderView.findViewById<TextView>(R.id.tvTeamName)
+        var sharedPref = getSharedPreferences("personInfo", Context.MODE_PRIVATE)
         val client = HttpClient(CIO)
         Log.d("updateLoop", "HttpClient created.")
-        var scriptUrl = "https://script.google.com/macros/s/AKfycbzDS69K05EXE5mKKltCN8r5ra2iQmQ_vNnjssSA1F6CJioDELu3J3NMSBRDUjwMNsJi/exec"
+        var scriptUrl =
+            "https://script.google.com/macros/s/AKfycbw83MGOHf6LWvfCwHkarNBwlcef8a_PO5ZDKSG9WEehQqPHyRHitMeP1BaHLRypO0C1/exec"
         scope.launch {
-            val response: HttpResponse = client.get(scriptUrl) {
-                parameter("action", "getPlayerInfo")
-                parameter("playerCode", playerCode)
-            }
-            Log.d("updateLoop", "HttpRequest sent.")
-            var responseBody = response.body() as String;
-            Log.d("DATABASE", responseBody)
-            if (responseBody == "playerNotFound")
-            {
-                val editor = sharedPref.edit()
-                editor.apply {
-                    putString("playerCode", null)
-                    apply()
+            try {
+                var responsePlayer: HttpResponse = client.get(scriptUrl) {
+                    parameter("action", "getPlayerInfo")
+                    parameter("playerCode", playerCode)
                 }
-                showLogin(scope)
+                Log.d("updateLoop", "HttpRequest sent.")
+                var responsePlayerBody = responsePlayer.body() as String;
+                Log.d("DATABASE", responsePlayerBody)
+                if (responsePlayerBody == "playerNotFound") {
+                    val editor = sharedPref.edit()
+                    editor.apply {
+                        putString("playerCode", null)
+                        apply()
+                    }
+                    showLogin()
+                } else {
+                    // Update player info
+                    var playerInfo = responsePlayerBody.split(",")
+                    var playerName = playerInfo[1];
+                    var teamCode = playerInfo[2];
+                    val editor = sharedPref.edit()
+                    if (sharedPref.getString("playerName", null) != playerName) {
+                        editor.apply {
+                            putString("playerName", playerName)
+                            putString("teamCode", teamCode)
+                            apply()
+                        }
+                        tvPlayerNameNav.text =
+                            if (!isTeamLeader) playerName else "$playerName \uD83D\uDC51"
+                        tvTeamNameNav.text = "Team $teamCode"
+                    }
+
+                    // Update team info
+
+                    var responseTeam = client.get(scriptUrl) {
+                        parameter("action", "getTeamInfo")
+                        parameter("teamCode", teamCode)
+                    }
+                    var responseTeamBody = responseTeam.body() as String
+
+
+                    var teamInfo = responseTeamBody.split(",")
+                    var teamName = teamInfo[0]
+                    var teamMembers = teamInfo[1]
+                    var teamLeader = teamInfo[2]
+                    var curCoins = teamInfo[3]
+                    var curCoordinates = teamInfo[4]
+
+                    if (tvTeamNameNav.text != teamName) {
+                        tvTeamNameNav.text = "$teamName"
+                    }
+                    isTeamLeader = playerCode == teamLeader
+                    tvPlayerNameNav.text =
+                        if (!isTeamLeader) playerName else "$playerName \uD83D\uDC51"
+                    Log.d("Testing", "$isTeamLeader Player: $playerCode | Team leader: $teamLeader")
+                    //if (isTeamLeader) {sendCoordinates()}
+
+                }
+            } catch (e: Throwable) {
+                Log.d("Testing", "HttpRequest failed with error code: ${e.javaClass.name}")
+                Toast.makeText(this@MainActivity, "No internet connection", Toast.LENGTH_SHORT).show()
+                return@launch
             }
-            Log.d("updateLoop", "Response logged.")
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.S)
+//    private fun sendCoordinates(permission:Boolean = false) {
+//        //Ask for location permission
+//        if (!permission) {
+//            var permissionForegroundAcquired = ContextCompat.checkSelfPermission(this, "android.permission.ACCESS_FINE_LOCATION")
+//            var permissionBackgroundAcquired = ContextCompat.checkSelfPermission(this,"android.permission.ACCESS_BACKGROUND_LOCATION")
+//            Log.d("Testing","Location permission allowed: $permissionForegroundAcquired $permissionBackgroundAcquired")
+//            if (permissionBackgroundAcquired<0) {
+//                locationPermissionRequest.launch(arrayOf(
+//                    Manifest.permission.ACCESS_FINE_LOCATION,
+//                    Manifest.permission.ACCESS_COARSE_LOCATION,
+//                    Manifest.permission.ACCESS_BACKGROUND_LOCATION))
+//                return
+//            }
+//        }
+//
+//        //Get coordinates (Use the setPriority() method with the PRIORITY_NO_POWER option if possible because it incurs almost no battery drain. If using PRIORITY_NO_POWER isn't possible, use PRIORITY_BALANCED_POWER_ACCURACY or PRIORITY_LOW_POWER, but avoid using PRIORITY_HIGH_ACCURACY for sustained background work because this option substantially drains battery.)
+//        //idfk why this shit isn't working maybe check this link and follow more closely https://codelabs.developers.google.com/codelabs/while-in-use-location#3
+//        fusedLocationClient.lastLocation
+//            .addOnSuccessListener { location : Location? ->
+//                // Got last known location. In some rare situations this can be null.
+//                if (location != null){Log.d("Location", "Current location: $location")}
+//            }
+//        val locationRequest = LocationRequest.create()?.apply {
+//            interval = 10000
+//            fastestInterval = 5000
+//            priority = LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY
+//        } as LocationRequest
+//
+//        fusedLocationClient.requestLocationUpdates(locationRequest,
+//            locationCallback,
+//            Looper.getMainLooper())
+//
+//
+//        //Input coordinates into Spreadsheet
+//
+//    }
+
     private fun saveNewPlayer(name: Any, birthday: Any, country: Any) {
         Log.d("Testing", "Function saveNewPlayer called.")
-        var scriptUrl = "https://script.google.com/macros/s/AKfycbzDS69K05EXE5mKKltCN8r5ra2iQmQ_vNnjssSA1F6CJioDELu3J3NMSBRDUjwMNsJi/exec"
+        var scriptUrl = "https://script.google.com/macros/s/AKfycbw83MGOHf6LWvfCwHkarNBwlcef8a_PO5ZDKSG9WEehQqPHyRHitMeP1BaHLRypO0C1/exec"
         val scope = CoroutineScope(Dispatchers.Main)
         Log.d("Testing", "Scope created.")
         scope.launch {
