@@ -242,7 +242,6 @@ class MainActivity : AppCompatActivity() {
                     tvPlayerNameNav.text =
                         if (!isTeamLeader) playerName else "$playerName \uD83D\uDC51"
                     Log.d("Testing", "$isTeamLeader Player: $playerCode | Team leader: $teamLeader")
-                    //if (isTeamLeader) {sendCoordinates()}
 
                 }
             } catch (e: Exception) {

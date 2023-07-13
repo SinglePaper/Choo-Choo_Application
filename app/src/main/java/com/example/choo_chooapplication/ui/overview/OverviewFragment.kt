@@ -1,5 +1,7 @@
 package com.example.choo_chooapplication.ui.overview
 
+import android.content.Context
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -13,6 +15,8 @@ import com.example.choo_chooapplication.databinding.FragmentHomeBinding
 class OverviewFragment : Fragment() {
 
     private var _binding: FragmentHomeBinding? = null
+    private lateinit var sharedPref: SharedPreferences;
+    private lateinit var editor: SharedPreferences.Editor;
 
     // This property is only valid between onCreateView and
     // onDestroyView.
@@ -28,11 +32,15 @@ class OverviewFragment : Fragment() {
 
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
         val root: View = binding.root
+        sharedPref = this.activity?.getSharedPreferences("personInfo", Context.MODE_PRIVATE) as SharedPreferences
+        editor = sharedPref.edit()
 
-        val textView: TextView = binding.textHome
-        overviewViewModel.text.observe(viewLifecycleOwner) {
-            textView.text = "Does this work?"
-        }
+        val textView: TextView = binding.tvHomeTeamName
+//        overviewViewModel.text.observe(viewLifecycleOwner) {
+//            textView.text = "Does this work?"
+//        }
+        var teamName = sharedPref.getString("teamName", "Team loading...")
+        textView.text = "$teamName"
         Log.d("Testing", "Team overview opened.")
         return root
     }
