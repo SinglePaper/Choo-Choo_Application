@@ -7,6 +7,8 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
+import android.widget.EditText
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
@@ -35,12 +37,21 @@ class OverviewFragment : Fragment() {
         sharedPref = this.activity?.getSharedPreferences("personInfo", Context.MODE_PRIVATE) as SharedPreferences
         editor = sharedPref.edit()
 
-        val textView: TextView = binding.tvHomeTeamName
+        val tvTeamNameHeader: TextView = binding.tvTeamNameHeader
+        val tvTeamWallet: TextView = binding.tvTeamWallet
+        val tvCurrentChallenge: TextView = binding.tvCurrentChallenge
+        val etFromStation: EditText = binding.etFromStation
+        val etToStation: EditText = binding.etToStation
+        val etDepartureTime: EditText = binding.etDepartureTime
+        val tvTotalCost: TextView = binding.tvTotalCost
+        val btnSpend: Button = binding.btnSpend
+        val btnCalculate: Button = binding.btnCalculate
+        val tvJailTime: TextView = binding.tvJailTime
 //        overviewViewModel.text.observe(viewLifecycleOwner) {
 //            textView.text = "Does this work?"
 //        }
         var teamName = sharedPref.getString("teamName", "Team loading...")
-        textView.text = "$teamName"
+        tvTeamNameHeader.text = "$teamName"
         Log.d("Testing", "Team overview opened.")
         return root
     }

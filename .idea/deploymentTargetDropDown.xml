@@ -6,13 +6,13 @@
         <type value="RUNNING_DEVICE_TARGET" />
         <deviceKey>
           <Key>
-            <type value="VIRTUAL_DEVICE_PATH" />
-            <value value="C:\Users\stefa\.android\avd\Pixel_3a_XL_API_34.avd" />
+            <type value="SERIAL_NUMBER" />
+            <value value="adb-32071JEGR01025-Rro45i._adb-tls-connect._tcp" />
           </Key>
         </deviceKey>
       </Target>
     </runningDeviceTargetSelectedWithDropDown>
-    <timeTargetWasSelectedWithDropDown value="2023-07-13T15:56:07.270081500Z" />
+    <timeTargetWasSelectedWithDropDown value="2023-07-13T17:00:41.699723900Z" />
     <runningDeviceTargetsSelectedWithDialog>
       <Target>
         <type value="RUNNING_DEVICE_TARGET" />
