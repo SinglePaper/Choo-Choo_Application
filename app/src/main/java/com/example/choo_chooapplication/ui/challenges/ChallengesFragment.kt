@@ -1,6 +1,7 @@
 package com.example.choo_chooapplication.ui.challenges
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -28,10 +29,13 @@ class ChallengesFragment : Fragment() {
         _binding = FragmentChallengesBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
-        val textView: TextView = binding.textGallery
+        val textView: TextView = binding.tvChallengeName
         challengesViewModel.text.observe(viewLifecycleOwner) {
             textView.text = it
         }
+        textView.text = ""
+
+        Log.d("Testing", "Challenges opened.")
         return root
     }
 

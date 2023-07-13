@@ -1,6 +1,7 @@
 package com.example.choo_chooapplication
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -30,6 +31,7 @@ import io.ktor.client.statement.HttpResponse
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.lang.Exception
 
 
 class MainActivity : AppCompatActivity() {
@@ -39,14 +41,14 @@ class MainActivity : AppCompatActivity() {
     private val scope = CoroutineScope(Dispatchers.Main)
     private lateinit var navView: NavigationView
     private var isTeamLeader = false
+    private lateinit var sharedPref: SharedPreferences;
+    private lateinit var editor: SharedPreferences.Editor
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        sharedPref = getSharedPreferences("personInfo", Context.MODE_PRIVATE)
+        editor = sharedPref.edit()
         // Saving data on user's phone
-        val sharedPref = getSharedPreferences("personInfo", Context.MODE_PRIVATE)
-
-
-        val editor = sharedPref.edit()
         editor.apply {
 //            putString("playerCode", null)
             apply()
@@ -55,7 +57,7 @@ class MainActivity : AppCompatActivity() {
         val playerName = sharedPref.getString("playerName","Loading...")
         val teamCode = sharedPref.getString("teamCode","")
         if (playerCode!=null && playerName!=null && teamCode!=null) {
-            showApp(playerCode, playerName, teamCode)
+            showApp(playerCode)
             Log.d("Testing", "Player code '$playerCode' found. Entering app.")
         }
         else {
@@ -75,7 +77,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showApp(playerCode: Any, playerName: Any, teamCode: Any) {
+    private fun showApp(playerCode: Any) {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setSupportActionBar(binding.appBarMain.toolbar)
@@ -104,14 +106,14 @@ class MainActivity : AppCompatActivity() {
         val navHeaderView = navView.getHeaderView(0)
         // Personalize navbar header with team and player name
         val tvPlayerNameNav = navHeaderView.findViewById<TextView>(R.id.tvPlayerName)
-        tvPlayerNameNav.text = playerName.toString()
+        tvPlayerNameNav.text = sharedPref.getString("playerName","Loading...")
         val tvTeamNameNav = navHeaderView.findViewById<TextView>(R.id.tvTeamName)
-        tvTeamNameNav.text = "Team $teamCode"
+        tvTeamNameNav.text = sharedPref.getString("teamName", "Team loading...")
     }
 
     private fun updatePlayerInfo(playerCode: String) {
         Log.d("Testing", "Function getPlayerInfo called.")
-        val scriptUrl = "https://script.google.com/macros/s/AKfycbw83MGOHf6LWvfCwHkarNBwlcef8a_PO5ZDKSG9WEehQqPHyRHitMeP1BaHLRypO0C1/exec"
+        val scriptUrl = "https://script.google.com/macros/s/AKfycbw6ho9pCuGK1F1hflkohW9h0hvGPU2NrJfvo84S08JC7TfAvyAFIRb_FK8lV93ab2ofFQ/exec"
         scope.launch {
             try {
                 Log.d("Testing", "Scope launched.")
@@ -141,16 +143,13 @@ class MainActivity : AppCompatActivity() {
                             val playerName = playerInfo[1]
                             val teamCode = playerInfo[2]
 
-                            val sharedPref =
-                                getSharedPreferences("personInfo", Context.MODE_PRIVATE)
-                            val editor = sharedPref.edit()
                             editor.apply {
                                 putString("playerCode", playerCode)
                                 putString("playerName", playerName)
                                 putString("teamCode", teamCode)
                                 apply()
                             }
-                            showApp(playerCode, playerName, teamCode)
+                            showApp(playerCode)
                         }
                     }
                 }
@@ -185,7 +184,7 @@ class MainActivity : AppCompatActivity() {
         val client = HttpClient(CIO)
         Log.d("updateLoop", "HttpClient created.")
         var scriptUrl =
-            "https://script.google.com/macros/s/AKfycbw83MGOHf6LWvfCwHkarNBwlcef8a_PO5ZDKSG9WEehQqPHyRHitMeP1BaHLRypO0C1/exec"
+            "https://script.google.com/macros/s/AKfycbw6ho9pCuGK1F1hflkohW9h0hvGPU2NrJfvo84S08JC7TfAvyAFIRb_FK8lV93ab2ofFQ/exec"
         scope.launch {
             try {
                 var responsePlayer: HttpResponse = client.get(scriptUrl) {
@@ -207,17 +206,13 @@ class MainActivity : AppCompatActivity() {
                     var playerInfo = responsePlayerBody.split(",")
                     var playerName = playerInfo[1];
                     var teamCode = playerInfo[2];
-                    val editor = sharedPref.edit()
-                    if (sharedPref.getString("playerName", null) != playerName) {
-                        editor.apply {
-                            putString("playerName", playerName)
-                            putString("teamCode", teamCode)
-                            apply()
-                        }
-                        tvPlayerNameNav.text =
-                            if (!isTeamLeader) playerName else "$playerName \uD83D\uDC51"
-                        tvTeamNameNav.text = "Team $teamCode"
+                    editor.apply {
+                        putString("playerName", playerName)
+                        putString("teamCode", teamCode)
+                        apply()
                     }
+                    tvPlayerNameNav.text =
+                        if (!isTeamLeader) playerName else "$playerName \uD83D\uDC51"
 
                     // Update team info
 
@@ -226,14 +221,19 @@ class MainActivity : AppCompatActivity() {
                         parameter("teamCode", teamCode)
                     }
                     var responseTeamBody = responseTeam.body() as String
-
-
                     var teamInfo = responseTeamBody.split(",")
                     var teamName = teamInfo[0]
                     var teamMembers = teamInfo[1]
                     var teamLeader = teamInfo[2]
                     var curCoins = teamInfo[3]
-                    var curCoordinates = teamInfo[4]
+
+                    editor.apply {
+                        putString("teamName", teamName)
+                        putString("teamMembers", teamMembers)
+                        putString("teamLeader", teamLeader)
+                        putString("curCoins", curCoins)
+                        apply()
+                    }
 
                     if (tvTeamNameNav.text != teamName) {
                         tvTeamNameNav.text = "$teamName"
@@ -245,7 +245,7 @@ class MainActivity : AppCompatActivity() {
                     //if (isTeamLeader) {sendCoordinates()}
 
                 }
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 Log.d("Testing", "HttpRequest failed with error code: ${e.javaClass.name}")
                 Toast.makeText(this@MainActivity, "No internet connection", Toast.LENGTH_SHORT).show()
                 return@launch
@@ -253,47 +253,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.S)
-//    private fun sendCoordinates(permission:Boolean = false) {
-//        //Ask for location permission
-//        if (!permission) {
-//            var permissionForegroundAcquired = ContextCompat.checkSelfPermission(this, "android.permission.ACCESS_FINE_LOCATION")
-//            var permissionBackgroundAcquired = ContextCompat.checkSelfPermission(this,"android.permission.ACCESS_BACKGROUND_LOCATION")
-//            Log.d("Testing","Location permission allowed: $permissionForegroundAcquired $permissionBackgroundAcquired")
-//            if (permissionBackgroundAcquired<0) {
-//                locationPermissionRequest.launch(arrayOf(
-//                    Manifest.permission.ACCESS_FINE_LOCATION,
-//                    Manifest.permission.ACCESS_COARSE_LOCATION,
-//                    Manifest.permission.ACCESS_BACKGROUND_LOCATION))
-//                return
-//            }
-//        }
-//
-//        //Get coordinates (Use the setPriority() method with the PRIORITY_NO_POWER option if possible because it incurs almost no battery drain. If using PRIORITY_NO_POWER isn't possible, use PRIORITY_BALANCED_POWER_ACCURACY or PRIORITY_LOW_POWER, but avoid using PRIORITY_HIGH_ACCURACY for sustained background work because this option substantially drains battery.)
-//        //idfk why this shit isn't working maybe check this link and follow more closely https://codelabs.developers.google.com/codelabs/while-in-use-location#3
-//        fusedLocationClient.lastLocation
-//            .addOnSuccessListener { location : Location? ->
-//                // Got last known location. In some rare situations this can be null.
-//                if (location != null){Log.d("Location", "Current location: $location")}
-//            }
-//        val locationRequest = LocationRequest.create()?.apply {
-//            interval = 10000
-//            fastestInterval = 5000
-//            priority = LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY
-//        } as LocationRequest
-//
-//        fusedLocationClient.requestLocationUpdates(locationRequest,
-//            locationCallback,
-//            Looper.getMainLooper())
-//
-//
-//        //Input coordinates into Spreadsheet
-//
-//    }
-
     private fun saveNewPlayer(name: Any, birthday: Any, country: Any) {
         Log.d("Testing", "Function saveNewPlayer called.")
-        var scriptUrl = "https://script.google.com/macros/s/AKfycbw83MGOHf6LWvfCwHkarNBwlcef8a_PO5ZDKSG9WEehQqPHyRHitMeP1BaHLRypO0C1/exec"
+        var scriptUrl = "https://script.google.com/macros/s/AKfycbw6ho9pCuGK1F1hflkohW9h0hvGPU2NrJfvo84S08JC7TfAvyAFIRb_FK8lV93ab2ofFQ/exec"
         val scope = CoroutineScope(Dispatchers.Main)
         Log.d("Testing", "Scope created.")
         scope.launch {

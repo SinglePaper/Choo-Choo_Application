@@ -1,6 +1,7 @@
 package com.example.choo_chooapplication.ui.overview
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -32,6 +33,7 @@ class OverviewFragment : Fragment() {
         overviewViewModel.text.observe(viewLifecycleOwner) {
             textView.text = "Does this work?"
         }
+        Log.d("Testing", "Team overview opened.")
         return root
     }
 
